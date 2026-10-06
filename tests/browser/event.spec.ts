@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
+import { parseEnv } from "node:util";
 const env = fs.readFileSync(".env.local", "utf8");
-const passphrase = env.match(/^ADMIN_PASSPHRASE=(.+)$/m)?.[1] ?? "";
+const passphrase = parseEnv(env).ADMIN_PASSPHRASE ?? "";
 
 test("public display, sharing, preferences, and calendar", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));

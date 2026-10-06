@@ -18,7 +18,7 @@ export function useEvent(admin = false) {
       const needTime = forceSync || !base.current || performance.now() - lastSync.current > 60_000;
       const started = performance.now();
       const timePromise = needTime ? fetch("/api/time", { cache: "no-store", signal: AbortSignal.timeout(8000) }).then(async res => { if (!res.ok) throw new Error("Time synchronization unavailable."); return res.json() as Promise<{ serverTime: number }>; }).then(data => { const ended = performance.now(); return { server: data.serverTime + (ended - started) / 2, local: ended }; }) : Promise.resolve(null);
-      const [response, time] = await Promise.all([fetch(admin ? "/api/admin/event" : "/api/event", { cache: "no-store", signal: AbortSignal.timeout(8000) }), timePromise]);
+      const [response, time] = await Promise.all([fetch(admin ? "/api/admin/event" : "/api/event", { cache: admin ? "no-store" : "default", signal: AbortSignal.timeout(8000) }), timePromise]);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not load the shared clock.");
       if (!active.current) return;

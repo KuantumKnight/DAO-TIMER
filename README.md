@@ -24,6 +24,8 @@ Set an organizer passphrase of at least 12 characters and a random `SESSION_SECR
 
 Connect Upstash Redis through Vercel Marketplace. Set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `ADMIN_PASSPHRASE`, and `SESSION_SECRET` in Vercel production and preview environments. Never commit credentials. Preview state is namespaced by branch, separate from production. `EVENT_NAMESPACE` can override the namespace for an isolated test environment.
 
+The deployed Marketplace resource is `neuraldao-timer`, on the Free plan in Mumbai, connected to production and preview with the `UPSTASH` prefix. Its generated `UPSTASH_KV_REST_API_URL` and `UPSTASH_KV_REST_API_TOKEN` variables are supported directly, as are conventional Upstash and Vercel KV variable names. The free plan has a finite monthly command allowance; public CDN caching shares snapshot reads across viewers.
+
 The server stores timestamp anchors, pauses, announcements, and a revisioned history in Redis. Public clients synchronize server time and advance locally. Snapshot polling runs every three seconds in visible tabs; snapshots receive one second of shared CDN caching. Admin reads are uncached. Conflicting writes receive HTTP 409 and require a refresh. An unavailable store yields HTTP 503 instead of silently creating an independent clock.
 
 Organizer sessions last 12 hours. Login attempts are limited to ten per IP per fifteen minutes. Controls require a secure HttpOnly cookie and same-origin requests. All organizers share one passphrase, so history identifies actions rather than people.

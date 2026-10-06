@@ -7,8 +7,10 @@ const localAllowed = process.env.LOCAL_DEV_STORE === "1" && !process.env.VERCEL 
 const globalStore = globalThis as typeof globalThis & { neuralDaoEvent?: EventState; neuralDaoAttempts?: Map<string, { count: number; expires: number }> };
 let client: Redis | null = null;
 function redis() {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) throw new Error("Shared storage is not configured.");
-  return client ??= Redis.fromEnv();
+  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.UPSTASH_KV_REST_API_URL ?? process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.UPSTASH_KV_REST_API_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  if (!url || !token) throw new Error("Shared storage is not configured.");
+  return client ??= new Redis({ url, token });
 }
 
 export async function readEvent(): Promise<EventState> {
