@@ -5,7 +5,7 @@ export type EventConfig = {
 };
 export type EventState = {
   config: EventConfig; revision: number;
-  clock: { startAt: number; endAt: number; pausedAt: number | null; endedAt: number | null };
+  clock: { startAt: number; endAt: number; pausedAt: number | null; endedAt: number | null; pauses: { elapsedMs: number; durationMs: number }[] };
   announcement: string | null;
   history: { at: number; action: string; detail: string }[];
 };
@@ -17,7 +17,7 @@ export function initialEvent(): EventState {
   const endAt = Date.parse("2026-10-08T16:30:00+05:30");
   return {
     config: { name: "NeuralDAO 2.0", venue: "Netaji Auditorium", timezone: "Asia/Kolkata", startAt, endAt, milestones: [] },
-    revision: 0, clock: { startAt, endAt, pausedAt: null, endedAt: null }, announcement: null, history: []
+    revision: 0, clock: { startAt, endAt, pausedAt: null, endedAt: null, pauses: [] }, announcement: null, history: []
   };
 }
 
@@ -33,6 +33,15 @@ export function deriveClock(event: EventState, now: number) {
   return { phase, duration, elapsed, remaining, progress: duration > 0 ? elapsed / duration : 0, milestones, next };
 }
 
+// Completed milestones keep their actual time; only future milestones move.
+export function milestoneTime(event: EventState, offsetMs: number, now: number) {
+  const pauses = event.clock.pauses ?? [];
+  const originalStart = event.clock.startAt - pauses.reduce((sum, pause) => sum + pause.durationMs, 0);
+  const completedPause = pauses.filter(pause => pause.elapsedMs < offsetMs).reduce((sum, pause) => sum + pause.durationMs, 0);
+  const currentlyPaused = event.clock.pausedAt !== null && offsetMs > deriveClock(event, now).elapsed ? Math.max(0, now - event.clock.pausedAt) : 0;
+  return originalStart + offsetMs + completedPause + currentlyPaused;
+}
+
 function record(event: EventState, now: number, action: string, detail: string): EventState {
   return { ...event, revision: event.revision + 1, history: [{ at: now, action, detail }, ...event.history].slice(0, 200) };
 }
@@ -43,7 +52,7 @@ export function applyCommand(event: EventState, command: ClockCommand, now: numb
   let detail = "";
   if (command === "start") {
     if (phase !== "scheduled") throw new Error("The event has already started.");
-    clock.startAt = now; clock.endAt = now + (event.config.endAt - event.config.startAt);
+    clock.startAt = now; clock.endAt = now + (event.config.endAt - event.config.startAt); clock.pauses = [];
     detail = "Started early with the full configured duration.";
   } else if (command === "pause") {
     if (phase !== "running") throw new Error("Only a running event can be paused.");
@@ -51,6 +60,7 @@ export function applyCommand(event: EventState, command: ClockCommand, now: numb
   } else if (command === "resume") {
     if (phase !== "paused" || clock.pausedAt === null) throw new Error("The event is not paused.");
     const shift = now - clock.pausedAt;
+    clock.pauses = [...(clock.pauses ?? []), { elapsedMs: clock.pausedAt - clock.startAt, durationMs: shift }];
     clock.startAt += shift; clock.endAt += shift; clock.pausedAt = null;
     detail = `Resumed; deadline moved by ${Math.round(shift / 1000)} seconds.`;
   } else if (command === "extend") {
@@ -61,7 +71,7 @@ export function applyCommand(event: EventState, command: ClockCommand, now: numb
     if (phase === "ended") throw new Error("The event has already ended.");
     clock.endedAt = now; clock.pausedAt = null; detail = "Organizer ended the event.";
   } else if (command === "reset") {
-    Object.assign(clock, { startAt: event.config.startAt, endAt: event.config.endAt, pausedAt: null, endedAt: null });
+    Object.assign(clock, { startAt: event.config.startAt, endAt: event.config.endAt, pausedAt: null, endedAt: null, pauses: [] });
     detail = "Restored the configured schedule.";
   }
   return record({ ...event, clock }, now, command, detail);
@@ -70,7 +80,7 @@ export function applyCommand(event: EventState, command: ClockCommand, now: numb
 export function applyConfig(event: EventState, config: EventConfig, now: number): EventState {
   if (config.endAt <= config.startAt) throw new Error("End time must be after start time.");
   const timingChanged = config.startAt !== event.config.startAt || config.endAt !== event.config.endAt;
-  return record({ ...event, config, clock: timingChanged ? { startAt: config.startAt, endAt: config.endAt, pausedAt: null, endedAt: null } : event.clock }, now, "configure", timingChanged ? "Updated schedule; clock follows the new start and end times." : "Updated event details and milestones.");
+  return record({ ...event, config, clock: timingChanged ? { startAt: config.startAt, endAt: config.endAt, pausedAt: null, endedAt: null, pauses: [] } : event.clock }, now, "configure", timingChanged ? "Updated schedule; clock follows the new start and end times." : "Updated event details and milestones.");
 }
 
 export function applyAnnouncement(event: EventState, text: string | null, now: number): EventState {

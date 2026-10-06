@@ -57,6 +57,14 @@ test("organizer auth, shared announcements, live changes, and stale revision", a
   const origin = "http://localhost:3000";
   const announcement = await page.request.post("/api/admin/event", { headers: { origin }, data: { kind: "announcement", revision: original.revision, text: "Concurrency check" } }); expect(announcement.ok()).toBe(true);
   const stale = await page.request.post("/api/admin/event", { headers: { origin }, data: { kind: "announcement", revision: original.revision, text: "Stale write" } }); expect(stale.status()).toBe(409);
+  await page.getByLabel("Venue", { exact: true }).fill("Local draft venue");
+  let competing = await (await page.request.get("/api/admin/event")).json();
+  await page.request.post("/api/admin/event", { headers: { origin }, data: { kind: "config", revision: competing.revision, config: { ...competing.config, venue: "Other organizer venue" } } });
+  await page.waitForTimeout(3500);
+  await page.getByRole("button", { name: "Save event", exact: true }).click();
+  await expect(page.getByText("Another organizer changed the event. Refresh and try again.")).toBeVisible();
+  expect((await (await page.request.get("/api/admin/event")).json()).config.venue).toBe("Other organizer venue");
+  await page.getByRole("button", { name: "Discard edits", exact: true }).click();
   const invalidOrigin = await page.request.post("/api/admin/event", { headers: { origin: "https://example.com" }, data: { kind: "command", revision: original.revision, command: "reset" } }); expect(invalidOrigin.status()).toBe(403);
   let current = await (await page.request.get("/api/admin/event")).json();
   const start = Date.now() - 60_000; const finish = Date.now() + 2 * 3600_000;

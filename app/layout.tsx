@@ -4,7 +4,7 @@ import "./globals.css";
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 export const metadata: Metadata = {
-  title: "NeuralDAO 2.0 | Every second counts",
+  title: "NeuralDAO 2.0 | Hackathon clock",
   description: "The shared hackathon clock for NeuralDAO 2.0. October 8, 2026, 08:30–16:30 IST, Netaji Auditorium.",
   openGraph: { title: "NeuralDAO 2.0", description: "Eight hours. One shared clock.", type: "website" },
   robots: { index: true, follow: true }

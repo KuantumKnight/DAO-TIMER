@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowDownIcon, ArrowLeftIcon, ArrowUpRightIcon, BellSimpleIcon, CalendarBlankIcon, CheckIcon, CopyIcon, CornersOutIcon, GearSixIcon, LockSimpleIcon, MoonIcon, QrCodeIcon, SpeakerHighIcon, SpeakerSlashIcon, SunIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import { QRCodeSVG } from "qrcode.react";
-import { deriveClock, formatRemaining, formatTime } from "@/lib/clock";
+import { deriveClock, formatRemaining, formatTime, milestoneTime } from "@/lib/clock";
 import { calendar } from "@/lib/calendar";
 import { useEvent } from "./use-event";
 import { Panel } from "./panel";
@@ -79,7 +79,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     const prev = previous.current;
     previous.current = { remaining: clock.remaining, phase: clock.phase };
     if (!sound || !connected || !prev || !audio.current) return;
-    const thresholds = [3600, 1800, 600, 300, 60, 0];
+    const thresholds = clock.phase === "ended" ? [0] : [3600, 1800, 600, 300, 60];
     for (const threshold of thresholds) {
       const crossed = prev.phase === "running" && prev.remaining > threshold * 1000 && clock.remaining <= threshold * 1000 && ["running", "ended"].includes(clock.phase);
       const key = `neuraldao-alert:${event.config.startAt}:${threshold}`;
@@ -112,7 +112,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   }
   const digits = clock ? formatRemaining(clock.remaining) : ["--", "--", "--"];
   const phase = clock?.phase ?? "loading";
-  const date = event ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: event.config.timezone }).format(event.clock.startAt) : "08 Oct 2026";
+  const date = event ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: event.config.timezone }).format(milestoneTime(event, 0, now)) : "08 Oct 2026";
   const zone = event?.config.timezone === "Asia/Kolkata" ? "IST" : event?.config.timezone ?? "IST";
   const durationHours = clock ? Math.round(clock.duration / 3600000 * 10) / 10 : 8;
   const label = phase === "scheduled" ? "Until kickoff" : phase === "paused" ? "Clock paused" : phase === "ended" ? "Time’s up" : phase === "running" ? "Time remaining" : "Connecting to the clock";
@@ -128,9 +128,9 @@ export function Timer({ projector = false }: { projector?: boolean }) {
 
     <section className="clock-stage" aria-label={label}>
       <div className="stage-heading"><div className="status"><span className={`status-dot ${phase === "running" ? "live" : ""}`}/>{status}</div><span className="stage-location">{event?.config.venue ?? "Netaji Auditorium"}</span></div>
-      <div className="timer-heading"><h1>{label}<span className="heading-period">.</span></h1><span className="timer-description">{phase === "scheduled" ? "Eight hours to build." : phase === "paused" ? "Waiting for the organizer to resume." : phase === "ended" ? "The hackathon has finished." : "The deadline is shared by every team."}</span></div>
+      <div className="timer-heading"><h1>{label}<span className="heading-period">.</span></h1><span className="timer-description">{phase === "scheduled" ? String(durationHours) + " hours to build." : phase === "paused" ? "Waiting for the organizer to resume." : phase === "ended" ? "The hackathon has finished." : "The deadline is shared by every team."}</span></div>
       <div className="digits" role="timer" aria-label={clock ? `${digits[0]} hours, ${digits[1]} minutes, ${digits[2]} seconds` : "Loading timer"}>
-        {digits.map((digit, i) => <div key={i} className="digit-pair"><div className={`digit-value ${i === 2 ? "seconds" : ""}`}><motion.span key={digit} initial={reduced ? false : { opacity: .7, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12 }}>{digit}</motion.span></div><span className="unit">{["Hours", "Minutes", "Seconds"][i]}</span></div>)}
+        {digits.map((digit, i) => <div key={i} className="digit-pair"><div className={`digit-value ${i === 2 ? "seconds" : ""}`} style={digit.length > 2 ? { fontSize: `clamp(50px, ${35.4 / digit.length}vw, ${600 / digit.length}px)` } : undefined}><motion.span key={digit} initial={reduced ? false : { opacity: .7, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12 }}>{digit}</motion.span></div><span className="unit">{["Hours", "Minutes", "Seconds"][i]}</span></div>)}
       </div>
       <div className="clock-subline"><span>{phase === "scheduled" ? "The clock starts" : phase === "ended" ? "Finished" : phase === "paused" ? "Remaining time is frozen" : "Deadline"}{phase !== "paused" && event && <> <strong>{formatTime(phase === "scheduled" ? event.clock.startAt : event.clock.endedAt ?? event.clock.endAt, event.config.timezone)} <span className="timezone">{zone}</span></strong></>}</span><button className="text-button" onClick={() => setSchedule(true)}>View schedule <ArrowUpRightIcon size={17}/></button></div>
 
@@ -140,7 +140,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     <section className="event-timeline" aria-label="Event progress">
       <div className="timeline-topline"><span>{event?.config.name ?? "NeuralDAO 2.0"}</span><span className="mono">{clock ? `${Math.round(clock.progress * 100)}% elapsed` : "Awaiting sync"}</span></div>
       <div className="ruler" role="progressbar" aria-label="Hackathon elapsed" aria-valuenow={clock ? Math.round(clock.progress * 100) : 0} aria-valuemin={0} aria-valuemax={100}><div className="ruler-ticks"/><div className="ruler-track"/><div className="ruler-elapsed" style={{ transform: `scaleX(${clock?.progress ?? 0})` }}/><div className="playhead" style={{ left: `${Math.min(100, (clock?.progress ?? 0) * 100)}%` }}><div/><span/></div>{clock?.milestones.filter(m => !["kickoff", "finish"].includes(m.id)).map(m => <span key={m.id} title={m.label} className="milestone-marker" style={{ left: `${m.offsetMs / clock.duration * 100}%` }}/>)}</div>
-      <div className="timeline-labels"><div><strong>{event ? formatTime(event.clock.startAt, event.config.timezone) : "08:30"}</strong><span>Kickoff</span></div><div className="next-milestone">{clock?.next && phase !== "scheduled" ? <><span>Up next</span><strong>{clock.next.label}</strong></> : <><span>{date}</span><strong>{zone}</strong></>}</div><div><strong>{event ? formatTime(event.clock.endAt + (event.clock.pausedAt !== null ? Math.max(0, now - event.clock.pausedAt) : 0), event.config.timezone) : "16:30"}</strong><span>{phase === "paused" ? "Estimated finish" : "Finish"}</span></div></div>
+      <div className="timeline-labels"><div><strong>{event ? formatTime(milestoneTime(event, 0, now), event.config.timezone) : "08:30"}</strong><span>Kickoff</span></div><div className="next-milestone">{clock?.next && phase !== "scheduled" ? <><span>Up next</span><strong>{clock.next.label}</strong></> : <><span>{date}</span><strong>{zone}</strong></>}</div><div><strong>{event ? formatTime(event.clock.endAt + (event.clock.pausedAt !== null ? Math.max(0, now - event.clock.pausedAt) : 0), event.config.timezone) : "16:30"}</strong><span>{phase === "paused" ? "Estimated finish" : "Finish"}</span></div></div>
     </section>
 
     <footer className={`display-controls ${projector && !controlsVisible && !settings && !share && !schedule ? "controls-hidden" : ""}`}>
@@ -159,7 +159,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     </Panel>
     <Panel open={share} onOpenChange={setShare} title="Same clock. Every screen." description="Scan to open the live hackathon timer."><div className="qr-container">{url && <QRCodeSVG value={url} size={208} level="M" marginSize={2} title="Open NeuralDAO timer"/>}</div><div className="share-url">{url}</div><button className="primary-button full" onClick={() => void copy()}>{copied ? <CheckIcon size={18}/> : <CopyIcon size={18}/>} {copied ? "Copied" : "Copy link"}</button></Panel>
     <Panel open={schedule} onOpenChange={setSchedule} title={event?.config.name ?? "Event schedule"} description={`${date} · ${zone}`}>
-      <div className="schedule-location"><CalendarBlankIcon size={18}/>{event?.config.venue}</div><div className="schedule-list">{clock?.milestones.map(m => { const milestoneNow = m.offsetMs <= clock.elapsed && phase !== "scheduled"; const at = event!.clock.startAt + m.offsetMs + (event!.clock.pausedAt !== null ? Math.max(0, now - event!.clock.pausedAt) : 0); return <div key={m.id} className={`schedule-item ${milestoneNow ? "passed" : ""}`}><span className="mono">{formatTime(at, event!.config.timezone)}</span><strong>{m.label}</strong>{milestoneNow && <CheckIcon size={17}/>}</div>; })}</div><p className="help-text">{phase === "paused" ? "Upcoming times are estimates while the clock is paused." : "Times update when organizers change the clock."}</p><button className="secondary-button full" disabled={!event} onClick={() => event && downloadFile(calendar(event), "neuraldao.ics", "text/calendar")}><ArrowDownIcon size={18}/> Add to calendar</button>
+      <div className="schedule-location"><CalendarBlankIcon size={18}/>{event?.config.venue}</div><div className="schedule-list">{clock?.milestones.map(m => { const milestoneNow = m.offsetMs <= clock.elapsed && phase !== "scheduled"; const at = milestoneTime(event!, m.offsetMs, now); return <div key={m.id} className={`schedule-item ${milestoneNow ? "passed" : ""}`}><span className="mono">{formatTime(at, event!.config.timezone)}</span><strong>{m.label}</strong>{milestoneNow && <CheckIcon size={17}/>}</div>; })}</div><p className="help-text">{phase === "paused" ? "Upcoming times are estimates while the clock is paused." : "Times update when organizers change the clock."}</p><button className="secondary-button full" disabled={!event} onClick={() => event && downloadFile(calendar(event, now), "neuraldao.ics", "text/calendar")}><ArrowDownIcon size={18}/> Add to calendar</button>
     </Panel>
   </main>;
 }

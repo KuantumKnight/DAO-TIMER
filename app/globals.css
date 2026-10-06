@@ -2,7 +2,6 @@
 
 :root { color-scheme: dark; --bg: #111113; --surface: #19191c; --elevated: #202024; --text: #f1f0f3; --muted: #a5a3ad; --faint: #76747f; --line: #323136; --accent: #e477fb; --accent-soft: #e477fb14; --on-accent: #211225; --danger: #ff9b94; }
 :root[data-theme="light"] { color-scheme: light; --bg: #f5f5f4; --surface: #fdfdfc; --elevated: #eae9ed; --text: #19191d; --muted: #64616d; --faint: #75717e; --line: #d6d3da; --accent: #862a9c; --accent-soft: #862a9c0d; --on-accent: #fff; --danger: #a92d26; }
-@theme inline { --font-sans: var(--font-sans); --font-mono: var(--font-mono); }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-sans), sans-serif; -webkit-font-smoothing: antialiased; }
@@ -85,11 +84,12 @@ button, a, input, textarea { outline-offset: 5px; }
 .projector .stage-heading { margin-bottom: 3vh; }
 .projector .digit-value, .projector .digit-pair::after { font-size: clamp(110px, 18.2vw, 310px); }
 .projector .timer-description { display: none; }
+.projector .header-settings { display: none; }
 .projector .event-timeline { margin-bottom: 20px; }
 .urgent .digit-value.seconds { font-weight: 500; }
 .urgent .timer-heading h1 { color: var(--accent); }
 .service-error { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--line); padding: 16px 20px; border-radius: 8px; font-size: 13px; max-width: min(90vw, 480px); }
-.toast { position: fixed; z-index: 40; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); box-shadow: 0 8px 30px #0002; border-radius: 8px; padding: 14px 18px; font-size: 13px; display: flex; align-items: center; gap: 20px; max-width: 90vw; }
+.toast { position: fixed; z-index: 70; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); box-shadow: 0 8px 30px #0002; border-radius: 8px; padding: 14px 18px; font-size: 13px; display: flex; align-items: center; gap: 20px; max-width: 90vw; }
 .toast button { border: 0; background: none; color: inherit; font-size: 20px; }
 .panel-overlay { position: fixed; z-index: 50; inset: 0; background: #0009; backdrop-filter: blur(5px); animation: overlay-in .15s; }
 .panel { position: fixed; z-index: 60; width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px; box-shadow: 0 24px 80px #0003; animation: overlay-in .15s; }

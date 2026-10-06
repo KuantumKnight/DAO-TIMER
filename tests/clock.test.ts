@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyAnnouncement, applyCommand, applyConfig, deriveClock, formatRemaining, initialEvent, parseZonedInput, zonedInput } from "../lib/clock";
+import { applyAnnouncement, applyCommand, applyConfig, deriveClock, formatRemaining, initialEvent, milestoneTime, parseZonedInput, zonedInput } from "../lib/clock";
 import { calendar } from "../lib/calendar";
 
 test("default schedule is 8 October 2026, 08:30 to 16:30 IST", () => {
@@ -44,6 +44,15 @@ test("extension, early finish, and reset retain history", () => {
   assert.equal(reset.clock.endAt, e.clock.endAt);
   assert.equal(reset.clock.endedAt, null);
   assert.equal(reset.history.length, 3);
+});
+test("pauses move future milestones without rewriting kickoff or completed milestones", () => {
+  const e = initialEvent();
+  const paused = applyCommand(e, "pause", e.clock.startAt + 3600_000);
+  const resumed = applyCommand(paused, "resume", e.clock.startAt + 3900_000);
+  assert.equal(milestoneTime(resumed, 0, e.clock.startAt + 3900_000), e.clock.startAt);
+  assert.equal(milestoneTime(resumed, 1800_000, e.clock.startAt + 3900_000), e.clock.startAt + 1800_000);
+  assert.equal(milestoneTime(resumed, 7200_000, e.clock.startAt + 3900_000), e.clock.startAt + 7500_000);
+  assert.ok(calendar(resumed).includes("DTSTART:20261008T030000Z"));
 });
 test("invalid state commands cannot silently rewrite a clock", () => {
   const e = initialEvent();
