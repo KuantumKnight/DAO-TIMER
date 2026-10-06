@@ -11,6 +11,24 @@ import { Panel } from "./panel";
 
 type WakeLockHandle = { release: () => Promise<void>; addEventListener: (type: string, listener: () => void) => void };
 type WakeNavigator = Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockHandle> } };
+function Led({ text, className = "" }: { text: string; className?: string }) {
+  return <span className={className}>{text.split(":").map((part, i) => <span key={i}>{i > 0 && <span className="led-colon" aria-hidden><i/><i/></span>}{part}</span>)}</span>;
+}
+function until(ms: number) {
+  const minutes = Math.max(1, Math.ceil(ms / 60000));
+  return minutes >= 60 ? `in ${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m` : `in ${minutes} min`;
+}
+function Ticker({ text }: { text: string }) {
+  const windowRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [scrolling, setScrolling] = useState(false);
+  useEffect(() => {
+    const measure = () => setScrolling(!!windowRef.current && !!textRef.current && textRef.current.scrollWidth > windowRef.current.clientWidth);
+    measure(); window.addEventListener("resize", measure); return () => window.removeEventListener("resize", measure);
+  }, [text]);
+  // Short messages stay still so they can be read from the back row; only overflowing ones scroll.
+  return <aside className="board-panel ticker" aria-live="polite"><b className="ticker-tag">Organizers</b><div className="ticker-window" ref={windowRef}><p ref={textRef} className={scrolling ? "scrolling" : ""} style={scrolling ? { animationDuration: `${Math.max(14, text.length * 0.28)}s` } : undefined}>{text}</p></div></aside>;
+}
 function downloadFile(content: string, filename: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -41,7 +59,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     setUrl(window.location.origin);
     setWakeSupported(!!(navigator as WakeNavigator).wakeLock);
     setShowProgress(localStorage.getItem("neuraldao-progress") !== "hidden");
-    const preference = projector ? "dark" : localStorage.getItem("neuraldao-theme") ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const preference = projector ? "dark" : localStorage.getItem("neuraldao-theme") ?? "dark";
     setTheme(preference); document.documentElement.dataset.theme = preference;
     return () => { void wake.current?.release(); void audio.current?.close(); };
   }, [projector]);
@@ -135,7 +153,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const segments = clock ? clock.milestones.slice(0, -1).map((m, i) => {
     const end = clock.milestones[i + 1].offsetMs;
     const span = end - m.offsetMs;
-    return { id: m.id, label: clock.milestones.length === 2 ? "Hacking" : m.label, start: m.offsetMs, span, progress: span > 0 ? Math.min(1, Math.max(0, (clock.elapsed - m.offsetMs) / span)) : 1 };
+    return { id: m.id, label: m.id === "kickoff" ? "Hacking" : m.label, start: m.offsetMs, span, progress: span > 0 ? Math.min(1, Math.max(0, (clock.elapsed - m.offsetMs) / span)) : 1 };
   }).filter(segment => segment.span > 0) : [];
   // Long pre-event countdowns can have 3+ hour digits; shrink so HH:MM still fits one line.
   const fit = 5 / (digits[0].length + 3);
@@ -144,6 +162,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const period = phase === "scheduled" ? "Pre-game" : phase === "paused" ? "Timeout" : phase === "ended" ? "Full time" : phase === "running" ? (current >= 0 ? `P${current + 1} · ${segments[current].label}` : "Live") : "Syncing";
   const nextAt = phase === "scheduled" ? at(0) : phase !== "ended" && clock?.next ? at(clock.next.offsetMs) : "--:--";
   const nextLabel = phase === "scheduled" ? "Kickoff" : phase === "ended" ? "All done" : clock?.next?.label ?? "—";
+  const nextIn = phase === "running" && clock?.next ? until(clock.next.offsetMs - clock.elapsed) : phase === "paused" ? "on hold" : "";
 
   return <main className={`timer-app ${projector ? "projector" : ""} ${projector || isFullscreen ? "clean-display" : ""} ${urgent ? "urgent" : ""} ${phase}`}>
     <header className="site-header board-panel">
@@ -154,25 +173,25 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     </header>
 
     <div className="board-main">
-      <aside className="board-panel board-side" aria-label="Next milestone"><h2>Next</h2><div className="led">{nextAt}</div><div className="side-sub">{nextLabel}</div></aside>
+      <aside className="board-panel board-side" aria-label="Next milestone"><h2>Next</h2><Led className="led" text={nextAt}/><div className="side-sub">{nextLabel}</div>{nextIn && <div className="side-note">{nextIn}</div>}</aside>
       <section className="board-panel clock-frame" aria-label={label}>
         <span className="period">{period}</span>
         <div className="digits" role="timer" style={{ "--fit": fit } as React.CSSProperties} aria-label={clock ? `${digits[0]} hours, ${digits[1]} minutes, ${digits[2]} seconds` : "Loading timer"}>
-          <span className="digits-main">{digits[0]}<span className="digits-colon">:</span>{digits[1]}</span><span className="digits-seconds"><span className="digits-colon">:</span>{digits[2]}</span>
+          <Led className="digits-main" text={`${digits[0]}:${digits[1]}`}/><Led className="digits-seconds" text={`:${digits[2]}`}/>
         </div>
         <h1 className="board-label">{label}</h1>
         <button className="text-button schedule-link" onClick={() => setSchedule(true)}>View schedule <ArrowUpRightIcon size={17}/></button>
       </section>
-      <aside className="board-panel board-side" aria-label="Finish time"><h2>Final whistle</h2><div className="led">{phase === "paused" ? "~" : ""}{finish}</div><div className="side-sub">{zone}{phase === "paused" ? " · moves while paused" : ""}</div></aside>
+      <aside className="board-panel board-side" aria-label="Finish time"><h2>Final whistle</h2><Led className="led" text={finish}/><div className="side-sub">{zone}</div>{phase === "paused" && <div className="side-note">moves while paused</div>}</aside>
     </div>
 
     <section className="event-timeline board-panel" aria-label="Event schedule" hidden={!showProgress}>
       <div className="schedule-track" role="progressbar" aria-label="Hackathon elapsed" aria-valuenow={clock ? Math.round(clock.progress * 100) : 0} aria-valuemin={0} aria-valuemax={100}>
-        {segments.map((s, i) => <div key={s.id} className={`segment ${s.progress >= 1 ? "done" : s.progress > 0 ? "now" : ""}`} style={{ flex: Math.max(s.span, clock ? clock.duration / 12 : 1) }}><i className="segment-fill" style={{ transform: `scaleX(${s.progress})` }}/><span className="segment-time">P{i + 1} {at(s.start)}</span><span className="segment-label">{s.label}</span></div>)}
+        {segments.map((s, i) => <div key={s.id} className={`segment ${s.progress >= 1 ? "done" : s.progress > 0 ? "now" : ""}`} style={{ flex: Math.max(s.span, clock ? clock.duration / 12 : 1) }}><i className="segment-fill" style={{ transform: `scaleX(${s.progress})` }}/><span className="segment-time"><b>P{i + 1}</b> <span>{at(s.start)}</span></span><span className="segment-label">{s.label}</span></div>)}
       </div>
     </section>
 
-    {event?.announcement && <aside className="board-panel ticker" aria-live="polite"><p><b>Organizers</b>{event.announcement}</p></aside>}
+    {event?.announcement && <Ticker text={event.announcement}/>}
 
     <footer className={`display-controls ${projector && !controlsVisible && !settings && !share && !schedule ? "controls-hidden" : ""}`}>
       <div className="connection">{connected ? <><span className="connection-dot"/> Shared clock</> : <><WifiSlashIcon size={16}/><span>{event ? "Connection lost; showing last sync" : "Connecting"}</span><button className="inline-button" onClick={() => void refresh(true)}>Retry</button></>}</div>

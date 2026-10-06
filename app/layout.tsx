@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#050505" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" suppressHydrationWarning><body className={`${sans.variable} ${led.variable}`}><script dangerouslySetInnerHTML={{ __html: "try{document.documentElement.dataset.theme=location.pathname==='/display'?'dark':localStorage.getItem('neuraldao-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch{}" }}/>{children}</body></html>;
+  return <html lang="en" suppressHydrationWarning><body className={`${sans.variable} ${led.variable}`}><script dangerouslySetInnerHTML={{ __html: "try{document.documentElement.dataset.theme=location.pathname==='/display'?'dark':localStorage.getItem('neuraldao-theme')||'dark'}catch{}" }}/>{children}</body></html>;
 }
