@@ -121,7 +121,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
 
   return <main className={`timer-app ${projector ? "projector" : ""} ${urgent ? "urgent" : ""}`}>
     <header className="site-header">
-      <Link href="/" className="brand" aria-label="NeuralDAO timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/><span className="brand-edition">2.0</span></Link>
+      <Link href="/" className="brand" aria-label="NeuralDAO 2.0 timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/><span className="brand-edition">2.0</span></Link>
       <div className="header-event"><span className="date-label">{date}</span><span className="event-duration">{durationHours}h hackathon</span></div>
       <button className="icon-button header-settings" aria-label="Display settings" onClick={() => setSettings(true)}><GearSixIcon size={22}/></button>
     </header>
@@ -145,7 +145,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
 
     <footer className={`display-controls ${projector && !controlsVisible && !settings && !share && !schedule ? "controls-hidden" : ""}`}>
       <div className="connection">{connected ? <><span className="connection-dot"/> Shared clock</> : <><WifiSlashIcon size={16}/><span>{event ? "Connection lost; showing last sync" : "Connecting"}</span><button className="inline-button" onClick={() => void refresh(true)}>Retry</button></>}</div>
-      <nav aria-label="Timer tools"><button className="tool-button" onClick={() => void toggleSound()} aria-label={sound ? "Mute alerts" : "Enable sound alerts"} title={sound ? "Mute alerts" : "Enable sound alerts"}>{sound ? <SpeakerHighIcon size={20}/> : <SpeakerSlashIcon size={20}/>}</button><button className="tool-button" onClick={() => setShare(true)}><QrCodeIcon size={20}/><span>Share</span></button>{projector ? <Link className="tool-button" href="/"><ArrowLeftIcon size={20}/><span>Exit display</span></Link> : <Link className="tool-button" href="/display"><CornersOutIcon size={20}/><span>Display</span></Link>}<button className="tool-button" onClick={() => void fullscreen()} aria-label="Toggle fullscreen" title="Fullscreen (F)"><CornersOutIcon size={20}/></button><button className="tool-button" onClick={() => setSettings(true)} aria-label="Display settings"><GearSixIcon size={20}/></button></nav>
+      <nav aria-label="Timer tools"><button className="tool-button" onClick={() => void toggleSound()} aria-label={sound ? "Mute alerts" : "Enable sound alerts"} title={sound ? "Mute alerts" : "Enable sound alerts"}>{sound ? <SpeakerHighIcon size={20}/> : <SpeakerSlashIcon size={20}/>}</button><button className="tool-button" aria-label="Share" onClick={() => setShare(true)}><QrCodeIcon size={20}/><span>Share</span></button>{projector ? <Link className="tool-button" aria-label="Exit display" href="/"><ArrowLeftIcon size={20}/><span>Exit display</span></Link> : <Link className="tool-button" aria-label="Display" href="/display"><CornersOutIcon size={20}/><span>Display</span></Link>}<button className="tool-button" onClick={() => void fullscreen()} aria-label="Toggle fullscreen" title="Fullscreen (F)"><CornersOutIcon size={20}/></button><button className="tool-button" onClick={() => setSettings(true)} aria-label="Display settings"><GearSixIcon size={20}/></button></nav>
     </footer>
     {!event && error && <div className="service-error" role="alert">{error} <button onClick={() => void refresh(true)} className="text-button">Try again</button></div>}
     {feedback && <div className="toast" role="status" onClick={() => setFeedback("")}>{feedback}<button aria-label="Dismiss message" onClick={() => setFeedback("")}>×</button></div>}
@@ -163,3 +163,4 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     </Panel>
   </main>;
 }
+
