@@ -185,8 +185,9 @@ input:focus, textarea:focus { border-color: var(--accent); }
 .form-two input { font-size: 11px; padding: 11px 8px; }
 .milestones-editor { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 3px; }
 .built-in-milestone { padding: 14px; border-radius: 6px; background: var(--surface); color: var(--muted); font-size: 11px; display: flex; gap: 8px; line-height: 1.6; align-items: center; margin-bottom: 18px; }
-.milestone-editor-row { display: grid; grid-template-columns: 1fr 90px 35px; gap: 10px; margin-bottom: 17px; align-items: end; }
+.milestone-editor-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 1.15fr) 90px 35px; gap: 10px; margin-bottom: 17px; align-items: end; }
 .milestone-editor-row label { font-size: 10px; color: var(--muted); }
+.milestone-editor-row input { min-width: 0; width: 100%; }
 .milestone-editor-row .icon-button { min-width: 35px; }
 .form-actions { display: flex; gap: 13px; margin-top: 25px; align-items: center; }
 .announcement-counter { text-align: right; font-size: 10px; color: var(--muted); margin-top: 7px; }
@@ -211,7 +212,14 @@ input, textarea, select, .admin-notice, .admin-clock, .built-in-milestone { bord
 .danger-actions .text-button.danger { color: var(--danger); font-weight: 600; }
 
 @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
-@media (max-width: 900px) { .admin-grid { gap: 30px; } .form-two { grid-template-columns: 1fr; gap: 0; } }
+@media (max-width: 900px) {
+  .admin-grid { gap: 30px; } .form-two { grid-template-columns: 1fr; gap: 0; }
+  .milestone-editor-row { grid-template-columns: minmax(0, 1fr) 78px 35px; }
+  .milestone-editor-row > div:first-child { grid-column: 1; grid-row: 1; }
+  .milestone-editor-row > div:nth-child(3) { grid-column: 2; grid-row: 1; }
+  .milestone-editor-row .icon-button { grid-column: 3; grid-row: 1; }
+  .milestone-editor-row .milestone-wall-time { grid-column: 1 / -1; grid-row: 2; }
+}
 @media (max-width: 640px) {
   :root { --cut: 18px; --digit: 21vw; }
   .header-event { font-size: 12px; } .header-venue { display: none; }
