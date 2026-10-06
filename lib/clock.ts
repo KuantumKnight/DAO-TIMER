@@ -35,6 +35,7 @@ export function deriveClock(event: EventState, now: number) {
 
 // Completed milestones keep their actual time; only future milestones move.
 export function milestoneTime(event: EventState, offsetMs: number, now: number) {
+  if (event.clock.endedAt !== null && offsetMs === event.clock.endAt - event.clock.startAt) return event.clock.endedAt;
   const pauses = event.clock.pauses ?? [];
   const originalStart = event.clock.startAt - pauses.reduce((sum, pause) => sum + pause.durationMs, 0);
   const completedPause = pauses.filter(pause => pause.elapsedMs < offsetMs).reduce((sum, pause) => sum + pause.durationMs, 0);
@@ -68,8 +69,13 @@ export function applyCommand(event: EventState, command: ClockCommand, now: numb
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 1440) throw new Error("Enter between 1 and 1440 minutes.");
     clock.endAt += minutes * 60_000; detail = `Added ${minutes} minutes.`;
   } else if (command === "end") {
-    if (phase === "ended") throw new Error("The event has already ended.");
-    clock.endedAt = now; clock.pausedAt = null; detail = "Organizer ended the event.";
+    if (phase !== "running" && phase !== "paused") throw new Error("Only a running or paused event can be ended.");
+    if (clock.pausedAt !== null) {
+      const shift = now - clock.pausedAt;
+      clock.pauses = [...(clock.pauses ?? []), { elapsedMs: clock.pausedAt - clock.startAt, durationMs: shift }];
+      clock.startAt += shift;
+    }
+    clock.endAt = now; clock.endedAt = now; clock.pausedAt = null; detail = "Organizer ended the event.";
   } else if (command === "reset") {
     Object.assign(clock, { startAt: event.config.startAt, endAt: event.config.endAt, pausedAt: null, endedAt: null, pauses: [] });
     detail = "Restored the configured schedule.";

@@ -40,6 +40,13 @@ test("responsive phone and projector views fit without overflow", async ({ page 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.screenshot({ path: "artifacts/projector.png", fullPage: true });
+  for (const viewport of [{ width: 1707, height: 882 }, { width: 1366, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await expect(page.getByText("Shared clock", { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });
 
 test("organizer auth, shared announcements, live changes, and stale revision", async ({ page, browser }) => {

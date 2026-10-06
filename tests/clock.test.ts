@@ -61,6 +61,16 @@ test("invalid state commands cannot silently rewrite a clock", () => {
   assert.throws(() => applyCommand(e, "resume", e.clock.startAt));
   assert.throws(() => applyCommand(e, "extend", e.clock.endAt, 15));
   assert.throws(() => applyCommand(e, "extend", e.clock.startAt, -1));
+  assert.throws(() => applyCommand(e, "end", e.clock.startAt - 1000));
+});
+test("ending while paused records the real finish without including paused build time", () => {
+  const e = initialEvent();
+  const paused = applyCommand(e, "pause", e.clock.startAt + 3600_000);
+  const ended = applyCommand(paused, "end", e.clock.startAt + 3900_000);
+  assert.equal(deriveClock(ended, e.clock.startAt + 3900_000).duration, 3600_000);
+  assert.equal(milestoneTime(ended, 0, e.clock.startAt + 3900_000), e.clock.startAt);
+  assert.equal(milestoneTime(ended, 3600_000, e.clock.startAt + 3900_000), e.clock.startAt + 3900_000);
+  assert.ok(calendar(ended).includes("DTEND:20261008T040500Z"));
 });
 test("metadata edits preserve live timing; schedule edits replace overrides", () => {
   const e = initialEvent(); const extended = applyCommand(e, "extend", e.clock.startAt, 15);
