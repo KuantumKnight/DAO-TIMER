@@ -17,7 +17,7 @@ Set an organizer passphrase of at least 12 characters and a random `SESSION_SECR
 ## Routes
 
 - `/`: participant timer with schedule, sharing, theme, sounds, and calendar export.
-- `/display`: dark projector display with controls hidden after inactivity. `F` toggles fullscreen; `S` opens settings.
+- `/display`: dark projector view showing only the clock and optional event progress. Native fullscreen uses the same clean view. `F` toggles fullscreen, `P` toggles progress, and `S` opens settings; settings include an exit-display link. Progress visibility is saved on this device.
 - `/admin`: protected organizer controls and action history.
 
 ## Shared storage and access

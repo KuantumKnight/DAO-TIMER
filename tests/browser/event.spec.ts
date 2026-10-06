@@ -25,6 +25,17 @@ test("public display, sharing, preferences, and calendar", async ({ page }) => {
   await page.goto("/display");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByRole("timer")).toBeVisible();
+  await expect(page.locator(".site-header")).toBeHidden();
+  await expect(page.locator(".display-controls")).toBeHidden();
+  await page.keyboard.press("p");
+  await expect(page.locator(".event-timeline")).toBeHidden();
+  await page.reload();
+  await expect(page.locator(".event-timeline")).toBeHidden();
+  await page.keyboard.press("p");
+  await expect(page.locator(".event-timeline")).toBeVisible();
+  await page.keyboard.press("s");
+  await expect(page.getByRole("button", { name: "Show event progress" })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
   expect(errors).toEqual([]);
 });
 
@@ -36,7 +47,7 @@ test("responsive phone and projector views fit without overflow", async ({ page 
   await page.screenshot({ path: "artifacts/mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/display");
-  await expect(page.getByText("Shared clock", { exact: true })).toBeVisible();
+  await expect(page.getByRole("timer")).not.toHaveAttribute("aria-label", "Loading timer");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.screenshot({ path: "artifacts/projector.png", fullPage: true });
@@ -54,7 +65,7 @@ test("organizer auth, shared announcements, live changes, and stale revision", a
   await page.goto("/admin");
   await page.getByLabel("Organizer passphrase").fill(passphrase);
   await page.getByRole("button", { name: "Open controls" }).click();
-  await expect(page.getByRole("heading", { name: "Run the room." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Organizer controls" })).toBeVisible();
   await expect(page.getByText("Connected", { exact: true })).toBeVisible();
   const secondContext = await browser.newContext(); const second = await secondContext.newPage();
   await second.goto("/"); await expect(second.getByText("Shared clock", { exact: true })).toBeVisible();
@@ -80,10 +91,10 @@ test("organizer auth, shared announcements, live changes, and stale revision", a
   await expect(page.getByRole("button", { name: "Pause clock" })).toBeVisible({ timeout: 12000 });
   await page.getByRole("button", { name: "Pause clock" }).click();
   await page.getByRole("button", { name: "Confirm change" }).click();
-  await expect(second.getByRole("heading", { name: "Clock paused." })).toBeVisible({ timeout: 12000 });
+  await expect(second.getByRole("heading", { name: "Clock paused" })).toBeVisible({ timeout: 12000 });
   const frozen = await second.getByRole("timer").getAttribute("aria-label"); await second.waitForTimeout(1200); expect(await second.getByRole("timer").getAttribute("aria-label")).toBe(frozen);
   await page.getByRole("button", { name: "Resume clock" }).click(); await page.getByRole("button", { name: "Confirm change" }).click();
-  await expect(second.getByRole("heading", { name: "Time remaining." })).toBeVisible({ timeout: 12000 });
+  await expect(second.getByRole("heading", { name: "Time remaining" })).toBeVisible({ timeout: 12000 });
   await secondContext.setOffline(true); await expect(second.getByText("Connection lost; showing last sync")).toBeVisible({ timeout: 12000 });
   await secondContext.setOffline(false); await expect(second.getByText("Shared clock", { exact: true })).toBeVisible({ timeout: 12000 });
   current = await (await page.request.get("/api/admin/event")).json();

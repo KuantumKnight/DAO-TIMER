@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.git/
+.vercel/
+.env*
+*.tsbuildinfo
+artifacts/
+test-results/
+playwright-report/
+public/design-preview/
