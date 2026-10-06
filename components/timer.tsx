@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
 import { ArrowDownIcon, ArrowLeftIcon, ArrowUpRightIcon, CalendarBlankIcon, CheckIcon, CopyIcon, CornersOutIcon, GearSixIcon, LockSimpleIcon, MoonIcon, QrCodeIcon, SpeakerHighIcon, SpeakerSlashIcon, SunIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import { QRCodeSVG } from "qrcode.react";
 import { deriveClock, formatRemaining, formatTime, milestoneTime } from "@/lib/clock";
@@ -37,7 +36,6 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const audio = useRef<AudioContext | null>(null);
   const previous = useRef<{ remaining: number; phase: string } | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reduced = useReducedMotion();
 
   useEffect(() => {
     setUrl(window.location.origin);
@@ -132,7 +130,6 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const zone = event?.config.timezone === "Asia/Kolkata" ? "IST" : event?.config.timezone ?? "IST";
   const label = phase === "scheduled" ? "Kickoff in" : phase === "paused" ? "Clock paused" : phase === "ended" ? "Time’s up" : phase === "running" ? "Time remaining" : "Connecting";
   const urgent = phase === "running" && !!clock && clock.remaining <= 600000;
-  const status = phase === "scheduled" ? "Standing by" : phase === "running" ? (urgent ? "● Final 10 min" : "● Live") : phase === "paused" ? "Paused" : phase === "ended" ? "Finished" : "Syncing";
   const at = (offsetMs: number) => event ? formatTime(milestoneTime(event, offsetMs, now), event.config.timezone) : "--:--";
   const finish = event ? formatTime(event.clock.endedAt ?? event.clock.endAt + (event.clock.pausedAt !== null ? Math.max(0, now - event.clock.pausedAt) : 0), event.config.timezone) : "--:--";
   const segments = clock ? clock.milestones.slice(0, -1).map((m, i) => {
@@ -143,33 +140,39 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   // Long pre-event countdowns can have 3+ hour digits; shrink so HH:MM still fits one line.
   const fit = 5 / (digits[0].length + 3);
 
+  const current = segments.findIndex(s => s.progress > 0 && s.progress < 1);
+  const period = phase === "scheduled" ? "Pre-game" : phase === "paused" ? "Timeout" : phase === "ended" ? "Full time" : phase === "running" ? (current >= 0 ? `P${current + 1} · ${segments[current].label}` : "Live") : "Syncing";
+  const nextAt = phase === "scheduled" ? at(0) : phase !== "ended" && clock?.next ? at(clock.next.offsetMs) : "--:--";
+  const nextLabel = phase === "scheduled" ? "Kickoff" : phase === "ended" ? "All done" : clock?.next?.label ?? "—";
+
   return <main className={`timer-app ${projector ? "projector" : ""} ${projector || isFullscreen ? "clean-display" : ""} ${urgent ? "urgent" : ""} ${phase}`}>
-    <header className="site-header">
-      <Link href="/" className="brand" aria-label="NeuralDAO 2.0 timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/><span className="chip">2.0</span></Link>
-      <div className="header-event"><b>{date}</b><span className="header-venue"> · {event?.config.venue ?? "Netaji Auditorium"}</span></div>
+    <header className="site-header board-panel">
+      <Link href="/" className="brand" aria-label="NeuralDAO 2.0 timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/></Link>
+      <div className="header-event">{event?.config.venue ?? "Netaji Auditorium"} · {date}</div>
+      <span className="led-badge">2.0</span>
       <button className="icon-button header-settings" aria-label="Display settings" onClick={() => setSettings(true)}><GearSixIcon size={22}/></button>
     </header>
 
-    <section className="clock-frame" aria-label={label}>
-      <span className="frame-node top" aria-hidden/><span className="frame-node bottom" aria-hidden/>
-      <div className="frame-top"><h1>{label}</h1><span className={`chip ${phase === "running" ? "" : "outline"}`}>{status}</span></div>
-      <div className="digits" role="timer" style={{ "--fit": fit } as React.CSSProperties} aria-label={clock ? `${digits[0]} hours, ${digits[1]} minutes, ${digits[2]} seconds` : "Loading timer"}>
-        <span className="digits-main">{digits[0]}<span className="digits-colon">:</span>{digits[1]}</span><span className="digits-seconds">{digits[2]}</span>
-      </div>
-      <div className="clock-subline">
-        <span>{phase === "scheduled" ? <>Starts at <b>{at(0)}</b> {zone}</> : phase === "ended" ? <>Finished at <b>{finish}</b> {zone}</> : clock?.next ? <>Next: <b>{clock.next.label}</b> at <b>{at(clock.next.offsetMs)}</b></> : null}</span>
-        <span>{phase !== "ended" && <>Ends <b>{phase === "paused" ? "~" : ""}{finish}</b> {zone}{phase === "paused" ? " · moves while paused" : ""}</>}<button className="text-button" onClick={() => setSchedule(true)}>View schedule <ArrowUpRightIcon size={17}/></button></span>
-      </div>
-    </section>
+    <div className="board-main">
+      <aside className="board-panel board-side" aria-label="Next milestone"><h2>Next</h2><div className="led">{nextAt}</div><div className="side-sub">{nextLabel}</div></aside>
+      <section className="board-panel clock-frame" aria-label={label}>
+        <span className="period">{period}</span>
+        <div className="digits" role="timer" style={{ "--fit": fit } as React.CSSProperties} aria-label={clock ? `${digits[0]} hours, ${digits[1]} minutes, ${digits[2]} seconds` : "Loading timer"}>
+          <span className="digits-main">{digits[0]}<span className="digits-colon">:</span>{digits[1]}</span><span className="digits-seconds"><span className="digits-colon">:</span>{digits[2]}</span>
+        </div>
+        <h1 className="board-label">{label}</h1>
+        <button className="text-button schedule-link" onClick={() => setSchedule(true)}>View schedule <ArrowUpRightIcon size={17}/></button>
+      </section>
+      <aside className="board-panel board-side" aria-label="Finish time"><h2>Final whistle</h2><div className="led">{phase === "paused" ? "~" : ""}{finish}</div><div className="side-sub">{zone}{phase === "paused" ? " · moves while paused" : ""}</div></aside>
+    </div>
 
-    {event?.announcement && <motion.aside initial={reduced ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="announcement" aria-live="polite"><span className="announcement-tag" aria-hidden>!?</span><div><span className="visually-hidden">From the organizers: </span><p>{event.announcement}</p></div></motion.aside>}
-
-    <section className="event-timeline" aria-label="Event schedule" hidden={!showProgress}>
+    <section className="event-timeline board-panel" aria-label="Event schedule" hidden={!showProgress}>
       <div className="schedule-track" role="progressbar" aria-label="Hackathon elapsed" aria-valuenow={clock ? Math.round(clock.progress * 100) : 0} aria-valuemin={0} aria-valuemax={100}>
-        {segments.map(s => <div key={s.id} className={`segment ${s.progress >= 1 ? "done" : s.progress > 0 ? "now" : ""}`} style={{ flex: s.span }}><div className="segment-bar"><i style={{ transform: `scaleX(${s.progress})` }}/></div><span className="segment-time">{at(s.start)}</span><span className="segment-label">{s.label}</span></div>)}
+        {segments.map((s, i) => <div key={s.id} className={`segment ${s.progress >= 1 ? "done" : s.progress > 0 ? "now" : ""}`} style={{ flex: Math.max(s.span, clock ? clock.duration / 12 : 1) }}><i className="segment-fill" style={{ transform: `scaleX(${s.progress})` }}/><span className="segment-time">P{i + 1} {at(s.start)}</span><span className="segment-label">{s.label}</span></div>)}
       </div>
-      <div className="schedule-end">{finish} · {phase === "paused" ? "Estimated finish" : "Time’s up"}</div>
     </section>
+
+    {event?.announcement && <aside className="board-panel ticker" aria-live="polite"><p><b>Organizers</b>{event.announcement}</p></aside>}
 
     <footer className={`display-controls ${projector && !controlsVisible && !settings && !share && !schedule ? "controls-hidden" : ""}`}>
       <div className="connection">{connected ? <><span className="connection-dot"/> Shared clock</> : <><WifiSlashIcon size={16}/><span>{event ? "Connection lost; showing last sync" : "Connecting"}</span><button className="inline-button" onClick={() => void refresh(true)}>Retry</button></>}</div>
