@@ -256,3 +256,29 @@ input, textarea, select, .admin-notice, .admin-clock, .built-in-milestone { bord
 .clean-display .digits { margin: 0; }
 .clean-display .event-timeline { margin-top: 0; padding: 0 0 5dvh; }
 @media (max-width: 640px) { .clean-display { --digit: 21vw; } }
+
+/* Final 10 minutes: escalating pulse. Only opacity and transform animate, so the huge digits stay smooth on projector laptops. */
+.frame-aura { position: absolute; inset: -6px; z-index: -2; filter: blur(28px); opacity: 0; pointer-events: none; will-change: opacity; }
+.frame-aura i { position: absolute; inset: 0; background: var(--hot); clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+.urgent .digits { position: relative; isolation: isolate; transform-origin: 50% 60%; }
+.digits-glow { position: absolute; inset: 0; z-index: -1; display: flex; align-items: baseline; justify-content: center; color: var(--hot); filter: blur(22px); opacity: 0; pointer-events: none; will-change: opacity; }
+.digits-glow .digits-seconds, .digits-glow .digits-colon { color: inherit; }
+.urgent-flash { position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0; background: radial-gradient(70% 65% at 50% 45%, color-mix(in srgb, var(--hot) 32%, transparent), color-mix(in srgb, var(--hot) 8%, transparent) 55%, transparent 80%); will-change: opacity; }
+
+.pulse-breathe .digits-glow { animation: glow-breathe 2.4s ease-in-out infinite; }
+.pulse-breathe .frame-aura { animation: aura-breathe 2.4s ease-in-out infinite; }
+.pulse-heart .digits, .pulse-final .digits { animation: heart-scale 1s ease-out infinite; }
+.pulse-heart .digits-glow, .pulse-final .digits-glow { animation: heart-glow 1s ease-out infinite; }
+.pulse-heart .frame-aura, .pulse-final .frame-aura { animation: heart-aura 1s ease-out infinite; }
+.pulse-heart .urgent-flash { opacity: .35; }
+.pulse-final .urgent-flash { animation: urgent-flash 1s ease-out infinite; }
+.clean-display .frame-aura { display: none; }
+
+@keyframes glow-breathe { 0%, 100% { opacity: .15; } 50% { opacity: .85; } }
+@keyframes aura-breathe { 0%, 100% { opacity: .08; } 50% { opacity: .45; } }
+@keyframes heart-scale { 0% { transform: scale(1); } 12% { transform: scale(1.025); } 26% { transform: scale(1); } 40% { transform: scale(1.012); } 70%, 100% { transform: scale(1); } }
+@keyframes heart-glow { 0% { opacity: .25; } 12% { opacity: 1; } 26% { opacity: .4; } 40% { opacity: .75; } 70%, 100% { opacity: .25; } }
+@keyframes heart-aura { 0%, 100% { opacity: .1; } 12% { opacity: .6; } 26% { opacity: .2; } 40% { opacity: .4; } 70% { opacity: .1; } }
+@keyframes urgent-flash { 0% { opacity: 1; } 60%, 100% { opacity: 0; } }
+/* Reduced motion: a steady glow instead of pulsing. */
+@media (prefers-reduced-motion: reduce) { .urgent .digits-glow { opacity: .5; } .urgent .frame-aura { opacity: .3; } }

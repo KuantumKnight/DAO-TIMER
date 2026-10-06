@@ -132,6 +132,8 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const zone = event?.config.timezone === "Asia/Kolkata" ? "IST" : event?.config.timezone ?? "IST";
   const label = phase === "scheduled" ? "Kickoff in" : phase === "paused" ? "Clock paused" : phase === "ended" ? "Time’s up" : phase === "running" ? "Time remaining" : "Connecting";
   const urgent = phase === "running" && !!clock && clock.remaining <= 600000;
+  // Final 10 minutes escalate: slow breathe, a heartbeat in the last minute, then a per-second flash for the last 10 seconds.
+  const pulse = !urgent || !clock ? "" : clock.remaining <= 10000 ? "pulse-final" : clock.remaining <= 60000 ? "pulse-heart" : "pulse-breathe";
   const status = phase === "scheduled" ? "Standing by" : phase === "running" ? (urgent ? "● Final 10 min" : "● Live") : phase === "paused" ? "Paused" : phase === "ended" ? "Finished" : "Syncing";
   const at = (offsetMs: number) => event ? formatTime(milestoneTime(event, offsetMs, now), event.config.timezone) : "--:--";
   const finish = event ? formatTime(event.clock.endedAt ?? event.clock.endAt + (event.clock.pausedAt !== null ? Math.max(0, now - event.clock.pausedAt) : 0), event.config.timezone) : "--:--";
@@ -143,7 +145,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   // Long pre-event countdowns can have 3+ hour digits; shrink so HH:MM still fits one line.
   const fit = 5 / (digits[0].length + 3);
 
-  return <main className={`timer-app ${projector ? "projector" : ""} ${projector || isFullscreen ? "clean-display" : ""} ${urgent ? "urgent" : ""} ${phase}`}>
+  return <main className={`timer-app ${projector ? "projector" : ""} ${projector || isFullscreen ? "clean-display" : ""} ${urgent ? "urgent" : ""} ${pulse} ${phase}`}>
     <header className="site-header">
       <Link href="/" className="brand" aria-label="NeuralDAO 2.0 timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/><span className="chip">2.0</span></Link>
       <div className="header-event"><b>{date}</b><span className="header-venue"> · {event?.config.venue ?? "Netaji Auditorium"}</span></div>
@@ -151,10 +153,12 @@ export function Timer({ projector = false }: { projector?: boolean }) {
     </header>
 
     <section className="clock-frame" aria-label={label}>
+      <span className="frame-aura" aria-hidden><i/></span>
       <span className="frame-node top" aria-hidden/><span className="frame-node bottom" aria-hidden/>
       <div className="frame-top"><h1>{label}</h1><span className={`chip ${phase === "running" ? "" : "outline"}`}>{status}</span></div>
       <div className="digits" role="timer" style={{ "--fit": fit } as React.CSSProperties} aria-label={clock ? `${digits[0]} hours, ${digits[1]} minutes, ${digits[2]} seconds` : "Loading timer"}>
         <span className="digits-main">{digits[0]}<span className="digits-colon">:</span>{digits[1]}</span><span className="digits-seconds">{digits[2]}</span>
+        {urgent && <span className="digits-glow" aria-hidden><span className="digits-main">{digits[0]}<span className="digits-colon">:</span>{digits[1]}</span><span className="digits-seconds">{digits[2]}</span></span>}
       </div>
       <div className="clock-subline">
         <span>{phase === "scheduled" ? <>Starts at <b>{at(0)}</b> {zone}</> : phase === "ended" ? <>Finished at <b>{finish}</b> {zone}</> : clock?.next ? <>Next: <b>{clock.next.label}</b> at <b>{at(clock.next.offsetMs)}</b></> : null}</span>
@@ -176,6 +180,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
       <nav aria-label="Timer tools"><button className="tool-button" onClick={() => void toggleSound()} aria-label={sound ? "Mute alerts" : "Enable sound alerts"} title={sound ? "Mute alerts" : "Enable sound alerts"}>{sound ? <SpeakerHighIcon size={20}/> : <SpeakerSlashIcon size={20}/>}</button><button className="tool-button" aria-label="Share" onClick={() => setShare(true)}><QrCodeIcon size={20}/><span>Share</span></button>{projector ? <Link className="tool-button" aria-label="Exit display" href="/"><ArrowLeftIcon size={20}/><span>Exit display</span></Link> : <Link className="tool-button" aria-label="Display" href="/display"><CornersOutIcon size={20}/><span>Display</span></Link>}<button className="tool-button" onClick={() => void fullscreen()} aria-label="Toggle fullscreen" title="Fullscreen (F)"><CornersOutIcon size={20}/></button><button className="tool-button" onClick={() => setSettings(true)} aria-label="Display settings"><GearSixIcon size={20}/></button></nav>
     </footer>
     {!event && error && <div className="service-error" role="alert">{error} <button onClick={() => void refresh(true)} className="text-button">Try again</button></div>}
+    {urgent && <div className="urgent-flash" aria-hidden/>}
     {feedback && <div className="toast" role="status" onClick={() => setFeedback("")}>{feedback}<button aria-label="Dismiss message" onClick={() => setFeedback("")}>×</button></div>}
 
     <Panel open={settings} onOpenChange={setSettings} title="Settings" description="Saved on this device only.">
