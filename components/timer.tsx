@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowDownIcon, ArrowLeftIcon, ArrowUpRightIcon, CalendarBlankIcon, CheckIcon, CopyIcon, CornersOutIcon, GearSixIcon, LockSimpleIcon, MoonIcon, QrCodeIcon, SpeakerHighIcon, SpeakerSlashIcon, SunIcon, WifiSlashIcon } from "@phosphor-icons/react";
+import { ArrowDownIcon, ArrowLeftIcon, ArrowUpRightIcon, CalendarBlankIcon, CheckIcon, CopyIcon, CornersOutIcon, GearSixIcon, LockSimpleIcon, MoonIcon, PauseIcon, PlayIcon, QrCodeIcon, SpeakerHighIcon, SpeakerSlashIcon, SunIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import { QRCodeSVG } from "qrcode.react";
 import { deriveClock, formatRemaining, formatTime, milestoneTime } from "@/lib/clock";
 import { calendar } from "@/lib/calendar";
 import { useEvent } from "./use-event";
 import { Panel } from "./panel";
+import { useMusic } from "./use-music";
 
 type WakeLockHandle = { release: () => Promise<void>; addEventListener: (type: string, listener: () => void) => void };
 type WakeNavigator = Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockHandle> } };
@@ -18,6 +19,7 @@ function downloadFile(content: string, filename: string, type: string) {
 }
 
 export function Timer({ projector = false }: { projector?: boolean }) {
+  const music = useMusic();
   const { event, now, connected, error, refresh } = useEvent();
   const clock = event && now ? deriveClock(event, now) : null;
   const [settings, setSettings] = useState(false);
@@ -146,6 +148,7 @@ export function Timer({ projector = false }: { projector?: boolean }) {
   const fit = 5 / (digits[0].length + 3);
 
   return <main className={`timer-app ${projector ? "projector" : ""} ${projector || isFullscreen ? "clean-display" : ""} ${urgent ? "urgent" : ""} ${pulse} ${phase}`}>
+    <audio ref={music.player} src="/audio/formula-1.mp3" loop preload="none" hidden/>
     <header className="site-header">
       <Link href="/" className="brand" aria-label="NeuralDAO 2.0 timer"><Image src="/neuraldao-logo.png" width={210} height={35} alt="NeuralDAO" priority/><span className="chip">2.0</span></Link>
       <div className="header-event"><b>{date}</b><span className="header-venue"> · {event?.config.venue ?? "Netaji Auditorium"}</span></div>
@@ -187,6 +190,12 @@ export function Timer({ projector = false }: { projector?: boolean }) {
       <div className="setting-row"><div><strong>Event progress</strong><p>Show the schedule beneath the clock. Shortcut: P.</p></div><button className="secondary-button" aria-label="Show event progress" aria-pressed={showProgress} onClick={toggleProgress}>{showProgress ? "On" : "Off"}</button></div>
       <div className="setting-row"><div><strong>Appearance</strong><p>{theme === "dark" ? "Dark" : "Light"} display</p></div><button className="secondary-button" onClick={toggleTheme}>{theme === "dark" ? <SunIcon size={18}/> : <MoonIcon size={18}/>} Switch theme</button></div>
       <div className="setting-row"><div><strong>Sound alerts</strong><p>1h, 30m, 10m, 5m, 1m, and finish.</p></div><button className="secondary-button" onClick={() => void toggleSound()} aria-pressed={sound}>{sound ? <SpeakerHighIcon size={18}/> : <SpeakerSlashIcon size={18}/>} {sound ? "On" : "Off"}</button></div>
+      <div className="setting-row music-setting">
+        <div className="music-heading"><div><strong>Music</strong><p>Formula 1 · Imperial Orchestra</p></div><button className="secondary-button" aria-label={music.playing || music.loading ? "Pause music" : "Play music"} onClick={() => void music.toggle()}>{music.playing || music.loading ? <PauseIcon size={18}/> : <PlayIcon size={18}/>} {music.playing || music.loading ? "Pause" : "Play"}</button></div>
+        <div className="music-volume"><label htmlFor="music-volume">Volume</label><input id="music-volume" type="range" min={0} max={100} step={1} value={Math.round(music.volume * 100)} onChange={e => music.changeVolume(Number(e.target.value) / 100)} aria-valuetext={`${Math.round(music.volume * 100)} percent`}/><span aria-hidden>{Math.round(music.volume * 100)}%</span></div>
+        <p className="music-note" role="status">{music.loading ? "Loading music…" : "Loops until paused."}</p>
+        {music.error && <p className="form-error" role="alert">{music.error}</p>}
+      </div>
       <div className="setting-row"><div><strong>Keep screen awake</strong><p>{wakeSupported ? "Keep this screen on while visible." : "Not supported in this browser."}</p></div><button className="secondary-button" disabled={!wakeSupported} onClick={() => void toggleAwake()} aria-pressed={awake}>{awake ? "On" : "Off"}</button></div>
       <div className="keyboard-help"><span>Keyboard</span><div><kbd>F</kbd> Fullscreen <kbd>P</kbd> Progress <kbd>S</kbd> Settings <kbd>Esc</kbd> Close</div></div>
       {projector && <Link href="/" className="organizer-link"><ArrowLeftIcon size={18}/> Exit display</Link>}

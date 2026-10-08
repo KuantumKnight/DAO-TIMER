@@ -103,6 +103,15 @@ button, a, input, textarea { outline-offset: 5px; }
 .setting-row { padding: 18px 0; display: flex; justify-content: space-between; align-items: center; gap: 15px; border-top: 1px solid var(--line); }
 .setting-row strong { font-size: 15px; font-weight: 600; }
 .setting-row p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.music-setting { display: block; }
+.music-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.music-heading > div { min-width: 0; }
+.music-volume { display: grid; grid-template-columns: auto minmax(0, 1fr) 36px; gap: 12px; align-items: center; margin-top: 16px; color: var(--muted); font-size: 13px; }
+.music-volume label { margin: 0; font-size: inherit; }
+.music-volume input { width: 100%; padding: 0; height: 28px; border: 0; accent-color: var(--lav); background: transparent; cursor: pointer; }
+.music-volume > span { text-align: right; font-variant-numeric: tabular-nums; }
+.music-setting .music-note { margin-top: 8px; }
+.music-setting .form-error { color: var(--danger); }
 .primary-button, .secondary-button { border: 2px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 11px 17px; font-size: 14px; font-weight: 800; font-stretch: 112%; letter-spacing: .05em; text-transform: uppercase; line-height: 1.4; white-space: nowrap; transition: transform .15s, background .15s; min-height: 44px; }
 .primary-button { background: var(--lav); color: var(--on-lav); }
 .primary-button:hover { filter: brightness(1.08); }
